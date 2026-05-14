@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSTFlow Pro — GSTR-3B Calculation & Reporting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ALERT -->
+<div class="aoverlay" id="aOverlay">
+  <div class="abox">
+    <div class="a-ico" id="aIco">⚠️</div>
+    <div class="a-title" id="aTitle"></div>
+    <div class="a-msg" id="aMsg"></div>
+    <button class="a-btn" onclick="closeAlert()">OK, Got It</button>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="tc" id="tc"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-logo-wrap">
+    <div class="nav-icon">G</div>
+    <div class="nav-brand-text">
+      <div class="name">GSTFlow Pro</div>
+      <div class="tag">Smart GSTR-3B Calculation &amp; Reporting System</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="theme-row">
+      <button class="tbtn on" data-t="light" title="Light" style="background:#f4f6fb">☀️</button>
+      <button class="tbtn" data-t="dark"  title="Dark"  style="background:#0b0f1c">🌙</button>
+      <button class="tbtn" data-t="blue"  title="Blue"  style="background:#060d1f">💙</button>
+      <button class="tbtn" data-t="green" title="Green" style="background:#f0fdf6">🌿</button>
+    </div>
+    <button class="nbtn nbtn-out" onclick="hPrint()">🖨️ Print</button>
+    <button class="nbtn nbtn-fill" onclick="calculate()">⚡ Calculate</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ═══════════ REPORT HEADER / COMPANY DETAILS ═══════════ -->
+  <div class="rh-card">
+    <div class="rh-stripe"></div>
+    <div class="rh-body">
+      <div class="rh-top">
+        <div>
+          <div class="rh-title">📊 GSTR-3B Monthly GST Report</div>
+          <div class="rh-sub" id="rh_sub">
+            GST Report For The Month Of <span class="rh-badge" id="badge">______</span>
+          </div>
+        </div>
+        <div class="rh-meta">
+          <div class="form-tag">GSTR-3B Filing</div>
+          <div class="form-desc">Monthly Self-Declaration Return</div>
+          <div class="form-desc" style="margin-top:4px">Form GSTR-3B | GST Council</div>
+        </div>
+      </div>
+      <div class="company-grid">
+        <div class="fg">
+          <label>Company Name *</label>
+          <input type="text" id="inp_company" placeholder="Enter company name">
+        </div>
+        <div class="fg">
+          <label>GSTIN (GST Number)</label>
+          <input type="text" id="inp_gst" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="fg">
+          <label>Financial Year</label>
+          <input type="text" id="inp_fy" placeholder="2024-25" value="2024-25">
+        </div>
+        <div class="fg">
+          <label>Month</label>
+          <select id="sel_month">
+            <option value="">— Select Month —</option>
+            <option>April</option><option>May</option><option>June</option>
+            <option>July</option><option>August</option><option>September</option>
+            <option>October</option><option>November</option><option>December</option>
+            <option>January</option><option>February</option><option>March</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Report Date</label>
+          <input type="date" id="inp_date">
+        </div>
+        <div class="fg">
+          <label>Trade Name (Optional)</label>
+          <input type="text" placeholder="Trade / Brand name">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ OUTPUT TAX LIABILITY ═══════════ -->
+  <div class="card">
+    <div class="sh">
+      <div class="sh-icon" style="background:var(--accentL);color:var(--accent)">📤</div>
+      <div>
+        <h2>Output Tax Liability</h2>
+        <p>Tax collected on outward supplies / sales</p>
+      </div>
+      <span class="sh-badge" style="background:var(--accentL);color:var(--accent)">Section 3.1</span>
+    </div>
+    <div class="tgrid">
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#2a5cff"></span>Output IGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="outIGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#7c3aed"></span>Output CGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="outCGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#0d9488"></span>Output SGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="outSGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tot-box tb-blue">
+        <div class="tl">Total Output Tax</div>
+        <div class="ta" id="totOut">₹0.00</div>
+        <div class="ts">Live calculated</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ INPUT TAX CREDIT ═══════════ -->
+  <div class="card">
+    <div class="sh">
+      <div class="sh-icon" style="background:var(--greenL);color:var(--green)">📥</div>
+      <div>
+        <h2>Input Tax Credit (ITC)</h2>
+        <p>Credit available from inward supplies / purchases</p>
+      </div>
+      <span class="sh-badge" style="background:var(--greenL);color:var(--green)">Section 4</span>
+    </div>
+    <div class="tgrid">
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#2a5cff"></span>Available IGST Credit</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="itcIGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#7c3aed"></span>Available CGST Credit</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="itcCGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#0d9488"></span>Available SGST Credit</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="itcSGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tot-box tb-green">
+        <div class="tl">Total ITC Available</div>
+        <div class="ta" id="totITC">₹0.00</div>
+        <div class="ts">Live calculated</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ RCM ═══════════ -->
+  <div class="card">
+    <div class="sh">
+      <div class="sh-icon" style="background:var(--orangeL);color:var(--orange)">🔄</div>
+      <div>
+        <h2>Reverse Charge Mechanism (RCM)</h2>
+        <p>Liability payable under reverse charge — must use Cash Ledger</p>
+      </div>
+      <span class="sh-badge" style="background:var(--orangeL);color:var(--orange)">Sec 3.1(d)</span>
+    </div>
+    <div class="tgrid">
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#d97706"></span>RCM IGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="rcmIGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#d97706"></span>RCM CGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="rcmCGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#d97706"></span>RCM SGST</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="rcmSGST" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tot-box tb-orange">
+        <div class="tl">Total RCM</div>
+        <div class="ta" id="totRCM">₹0.00</div>
+        <div class="ts">Cash payment req.</div>
+      </div>
+    </div>
+    <div class="rcm-alert">
+      <div class="rcm-alert-title">⚠️ Mandatory RCM Rules (CGST Act)</div>
+      <ul>
+        <li>RCM liability must be paid exclusively via Electronic Cash Ledger</li>
+        <li>ITC on RCM purchases is available only after the cash payment is made</li>
+        <li>Existing ITC balance in Credit Ledger cannot offset RCM liability directly</li>
+        <li>CGST RCM paid → CGST ITC eligible | IGST RCM paid → IGST ITC eligible</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ LEDGER SECTION ═══════════ -->
+  <div class="lgrid">
+    <!-- CASH LEDGER -->
+    <div class="card">
+      <div class="sh">
+        <div class="sh-icon" style="background:var(--redL);color:var(--red)">💵</div>
+        <div>
+          <h2>Electronic Cash Ledger</h2>
+          <p>Enter opening balance — closing auto-calculated after offset</p>
+        </div>
+      </div>
+      <div class="tic-stack">
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#2a5cff"></span>Cash IGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="cashIGST" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#7c3aed"></span>Cash CGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="cashCGST" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#0d9488"></span>Cash SGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="cashSGST" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+      <!-- Closing balances shown after calculation -->
+      <div id="cashCloseBlock" style="display:none;margin-top:16px;background:var(--greenL);border:1px solid var(--green);border-radius:var(--r2);padding:14px 16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:10px;">📊 Closing Balance After Payment</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+          <div style="display:flex;justify-content:space-between;"><span>IGST Cash Closing</span><strong id="cashCloseIG" class="mono" style="color:var(--green)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>CGST Cash Closing</span><strong id="cashCloseCG" class="mono" style="color:var(--green)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>SGST Cash Closing</span><strong id="cashCloseSG" class="mono" style="color:var(--green)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid var(--green);padding-top:6px;font-weight:700;"><span>Total Cash Closing</span><strong id="cashCloseTotal" class="mono" style="color:var(--green)">—</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREDIT LEDGER -->
+    <div class="card">
+      <div class="sh">
+        <div class="sh-icon" style="background:var(--purpleL);color:var(--accent2)">💳</div>
+        <div>
+          <h2>Electronic Credit Ledger</h2>
+          <p>Opening ITC balance — closing auto-calculated after offset</p>
+        </div>
+      </div>
+      <div class="tic-stack">
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#2a5cff"></span>Credit IGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="credIGST" placeholder="Uses ITC IGST if blank" min="0" step="0.01">
+        </div>
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#7c3aed"></span>Credit CGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="credCGST" placeholder="Uses ITC CGST if blank" min="0" step="0.01">
+        </div>
+        <div class="tic">
+          <div class="tic-lbl"><span class="dot" style="background:#0d9488"></span>Credit SGST — Opening Balance</div>
+          <span class="tic-pre">₹</span>
+          <input type="number" id="credSGST" placeholder="Uses ITC SGST if blank" min="0" step="0.01">
+        </div>
+      </div>
+      <!-- Closing balances shown after calculation -->
+      <div id="credCloseBlock" style="display:none;margin-top:16px;background:var(--accentL);border:1px solid var(--accent);border-radius:var(--r2);padding:14px 16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:10px;">📊 Closing Balance After ITC Utilization</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+          <div style="display:flex;justify-content:space-between;"><span>IGST Credit Closing</span><strong id="credCloseIG" class="mono" style="color:var(--accent)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>CGST Credit Closing</span><strong id="credCloseCG" class="mono" style="color:var(--accent)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>SGST Credit Closing</span><strong id="credCloseSG" class="mono" style="color:var(--accent)">—</strong></div>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid var(--accent);padding-top:6px;font-weight:700;"><span>Total Credit Closing</span><strong id="credCloseTotal" class="mono" style="color:var(--accent)">—</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- ═══════════ INTEREST / LATE FEE / PENALTY ═══════════ -->
+  <div class="card">
+    <div class="sh">
+      <div class="sh-icon" style="background:var(--redL);color:var(--red)">📌</div>
+      <div>
+        <h2>Interest, Late Fee &amp; Penalty</h2>
+        <p>Paid via Cash Ledger only — Final Cash Payment = Remaining Liability + RCM + Interest + Late Fee + Penalty</p>
+      </div>
+    </div>
+    <div class="tgrid">
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#dc2626"></span>Interest (18% p.a.)</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="interest" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#d97706"></span>Late Fee</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="lateFee" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tic">
+        <div class="tic-lbl"><span class="dot" style="background:#7c3aed"></span>Penalty</div>
+        <span class="tic-pre">₹</span>
+        <input type="number" id="penalty" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="tot-box tb-red">
+        <div class="tl">Total Charges</div>
+        <div class="ta" id="totCharges">₹0.00</div>
+        <div class="ts">Via Cash Ledger</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ CALCULATE BUTTON ═══════════ -->
+  <div class="calc-bar">
+    <button class="btn-calc" id="calcBtn" onclick="calculate()">
+      <div class="spin"></div>
+      <span>⚡ Calculate GST &amp; Generate Report</span>
+    </button>
+    <button class="btn-rst" onclick="resetAll()">🔄 Reset All Fields</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ═══════════ RESULTS SECTION ════════════════ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="results" id="results">
+
+    <!-- SUMMARY DASHBOARD -->
+    <div class="card">
+      <div class="sh" style="margin-bottom:18px">
+        <div class="sh-icon" style="background:var(--accentL);color:var(--accent)">📊</div>
+        <div><h2>Final Result Dashboard</h2><p>Complete GST liability summary for the selected month</p></div>
+      </div>
+      <div class="sc-grid">
+        <div class="sc c1"><span class="sc-emoji">💼</span><div class="sc-lbl">Total Tax Liability</div><div class="sc-amt" id="sc1">₹0.00</div><div class="sc-sub">Output IGST+CGST+SGST</div></div>
+        <div class="sc c2"><span class="sc-emoji">✅</span><div class="sc-lbl">Total ITC Used</div><div class="sc-amt" id="sc2">₹0.00</div><div class="sc-sub">Credit applied vs liability</div></div>
+        <div class="sc c3"><span class="sc-emoji">💵</span><div class="sc-lbl">Total Cash Used</div><div class="sc-amt" id="sc3">₹0.00</div><div class="sc-sub">From Cash Ledger</div></div>
+        <div class="sc c4"><span class="sc-emoji">🏦</span><div class="sc-lbl">Remaining ITC Balance</div><div class="sc-amt" id="sc4">₹0.00</div><div class="sc-sub">Unused credit balance</div></div>
+        <div class="sc c5"><span class="sc-emoji">💰</span><div class="sc-lbl">Remaining Cash Balance</div><div class="sc-amt" id="sc5">₹0.00</div><div class="sc-sub">Unused cash in ledger</div></div>
+        <div class="sc c6"><span class="sc-emoji">🔄</span><div class="sc-lbl">RCM Paid (Cash)</div><div class="sc-amt" id="sc6">₹0.00</div><div class="sc-sub">Reverse charge amount</div></div>
+        <div class="sc c7"><span class="sc-emoji">⚡</span><div class="sc-lbl">Final Payable Amount</div><div class="sc-amt" id="sc7">₹0.00</div><div class="sc-sub">Net to deposit in portal</div></div>
+        <div class="sc c8"><span class="sc-emoji">🎯</span><div class="sc-lbl">Excess ITC</div><div class="sc-amt" id="sc8">₹0.00</div><div class="sc-sub">Refund eligible amount</div></div>
+        <div class="sc c9"><span class="sc-emoji">📉</span><div class="sc-lbl">Net GST Liability</div><div class="sc-amt" id="sc9">₹0.00</div><div class="sc-sub">Output − ITC Utilized</div></div>
+      </div>
+    </div>
+
+    <!-- LEDGER SUMMARY TABLE -->
+    <div class="card">
+      <div class="sh">
+        <div class="sh-icon" style="background:var(--greenL);color:var(--green)">📒</div>
+        <div><h2>Ledger Summary — Opening vs Closing</h2><p>Complete Cash Ledger & Credit Ledger movement after GST offset</p></div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="otbl">
+          <thead>
+            <tr><th>Ledger Entry</th><th>Amount (₹)</th><th>Remark</th></tr>
+          </thead>
+          <tbody id="ledgerTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- OFFSET TABLE -->
+    <div class="card">
+      <div class="sh">
+        <div class="sh-icon" style="background:var(--tealL);color:var(--teal)">⚖️</div>
+        <div><h2>GST Offset Calculation Table</h2><p>Step-by-step ITC utilization per GST offset rules</p></div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="otbl">
+          <thead>
+            <tr><th>Step</th><th>Credit Source</th><th>Applied Against</th><th>Amount (₹)</th></tr>
+          </thead>
+          <tbody id="offTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VISUAL OFFSET STEPS -->
+    <div class="card">
+      <div class="sh">
+        <div class="sh-icon" style="background:var(--orangeL);color:var(--orange)">🔍</div>
+        <div><h2>Visual Offset Explanation</h2><p>Detailed step-by-step breakdown of how ITC is applied</p></div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-hd"><span class="step-num">Step 1</span> IGST ITC → IGST → CGST → SGST</div>
+          <div id="s1rows"></div>
+        </div>
+        <div class="step s2">
+          <div class="step-hd"><span class="step-num">Step 2</span> CGST ITC → CGST → IGST</div>
+          <div id="s2rows"></div>
+        </div>
+        <div class="step s3">
+          <div class="step-hd"><span class="step-num">Step 3</span> SGST ITC → SGST → IGST</div>
+          <div id="s3rows"></div>
+        </div>
+        <div class="step s4">
+          <div class="step-hd"><span class="step-num">Step 4</span> Remaining Liability → Cash Ledger (IGST/CGST/SGST separately)</div>
+          <div id="s4rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="cgrid">
+      <div class="ccrd">
+        <h3>📊 Tax Liability vs ITC Available</h3>
+        <canvas id="ch1" height="230"></canvas>
+      </div>
+      <div class="ccrd">
+        <h3>🍩 ITC Utilization Breakdown</h3>
+        <canvas id="ch2" height="230"></canvas>
+      </div>
+      <div class="ccrd">
+        <h3>💵 Cash Ledger — Available vs Used</h3>
+        <canvas id="ch3" height="230"></canvas>
+      </div>
+      <div class="ccrd">
+        <h3>🕸️ GST Monthly Overview (Radar)</h3>
+        <canvas id="ch4" height="230"></canvas>
+      </div>
+      <div class="ccrd ccrd-full">
+        <h3>📈 Credit Ledger — Utilized vs Carry Forward</h3>
+        <canvas id="ch5" height="150"></canvas>
+      </div>
+    </div>
+
+    <!-- EXPORT BAR -->
+    <div class="exp-bar">
+      <button class="ebtn eb-pdf" onclick="hPDF()">📄 Download PDF Report</button>
+      <button class="ebtn eb-csv" onclick="hCSV()">📋 Export CSV</button>
+      <button class="ebtn eb-xls" onclick="hExcel()">📊 Export Excel</button>
+      <button class="ebtn eb-prt" onclick="hPrint()">🖨️ Print Report</button>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- ═══════════ HELP SECTION ═══════════ -->
+  <div class="card help-sec">
+    <div class="sh">
+      <div class="sh-icon" style="background:var(--accentL);color:var(--accent)">❓</div>
+      <div><h2>GST Rules &amp; Help Guide</h2><p>Understanding GSTR-3B filing, offset rules and ITC utilization</p></div>
+    </div>
+    <div class="hgrid">
+      <div class="hcard">
+        <div class="hcard-t">⚖️ GST Offset Rules</div>
+        <ol>
+          <li><strong>IGST ITC</strong> → IGST liability first</li>
+          <li>Remaining IGST ITC → CGST liability</li>
+          <li>Remaining IGST ITC → SGST liability</li>
+          <li><strong>CGST ITC</strong> → CGST liability first</li>
+          <li>Remaining CGST ITC → IGST liability</li>
+          <li><strong>SGST ITC</strong> → SGST liability first</li>
+          <li>Remaining SGST ITC → IGST liability</li>
+          <li>Any remaining liability → Cash Ledger (head-wise)</li>
+        </ol>
+      </div>
+      <div class="hcard">
+        <div class="hcard-t">🏦 ITC Utilization Rules</div>
+        <ul>
+          <li>ITC on capital goods may be availed over 5 years</li>
+          <li>ITC blocked on personal-use purchases (Sec 17(5))</li>
+          <li>ITC must be claimed within prescribed time limits</li>
+          <li>Excess ITC carries forward to next period</li>
+          <li>Eligible for refund under Section 54 of CGST Act</li>
+          <li>2A/2B reconciliation required for ITC claims</li>
+        </ul>
+      </div>
+      <div class="hcard">
+        <div class="hcard-t">🔄 RCM Rules</div>
+        <ul>
+          <li>Applies under Sections 9(3) &amp; 9(4) of CGST Act</li>
+          <li>Must be paid only via Electronic Cash Ledger</li>
+          <li>ITC on RCM available only after cash payment</li>
+          <li>Existing ITC cannot directly offset RCM</li>
+          <li>Declared in Table 3.1(d) of GSTR-3B</li>
+          <li>Late payment attracts 18% per annum interest</li>
+        </ul>
+      </div>
+      <div class="hcard">
+        <div class="hcard-t">💵 Cash Ledger Usage</div>
+        <ul>
+          <li>Used only when ITC is insufficient for liability</li>
+          <li>IGST cash → IGST liability only</li>
+          <li>CGST cash → CGST liability only</li>
+          <li>SGST cash → SGST liability only</li>
+          <li>Unutilized balance eligible for refund</li>
+          <li>Balance reflects amounts deposited in GST portal</li>
+        </ul>
+      </div>
+      <div class="hcard">
+        <div class="hcard-t">💳 Credit Ledger</div>
+        <ul>
+          <li>Represents accumulated ITC from all purchases</li>
+          <li>Used automatically per GST offset order rules</li>
+          <li>Balance carries forward to subsequent months</li>
+          <li>Cannot pay interest, TDS, TCS or penalties</li>
+          <li>Excess balance eligible for refund under Sec 54</li>
+          <li>Debit/credit entries auto-posted on filing</li>
+        </ul>
+      </div>
+      <div class="hcard">
+        <div class="hcard-t">📅 GSTR-3B Filing Notes</div>
+        <ul>
+          <li>Monthly self-declaration return under GST</li>
+          <li>Due date: 20th of next month (standard taxpayer)</li>
+          <li>Late fee: ₹50/day; ₹20/day for nil returns</li>
+          <li>Interest: 18% p.a. on delayed tax payment</li>
+          <li>Cannot be revised — use Form DRC-03 if needed</li>
+          <li>Always verify figures with your CA before filing</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    GSTFlow Pro v1.0 &nbsp;·&nbsp; Smart GSTR-3B Calculation &amp; Reporting System &nbsp;·&nbsp;
+    For assistance purposes only — verify with your Chartered Accountant before filing
+  </div>
+
+</div><!-- /wrap -->
+
+<script src="{{ url_for('static', filename='charts/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='exports/report.js') }}"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
